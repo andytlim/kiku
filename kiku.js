@@ -3,12 +3,12 @@
 process.bin = process.title = 'kiku';
 
 /*
-    imports
+  imports
  */
 var program = require('commander');
 
 /*
-    program & commands
+  program & commands
  */
 program
   .usage('<cmd>')

@@ -1,5 +1,5 @@
 /*
-    imports
+  imports
  */
 var program = require('commander'),
   fs = require('fs'),
@@ -8,7 +8,7 @@ var program = require('commander'),
   out = fs.createWriteStream('./kiku.mp3');
 
 /*
-    logging level
+  logging level
  */
 var logger = new (winston.Logger)({
   transports: [
@@ -18,7 +18,7 @@ var logger = new (winston.Logger)({
 logger.level = 'info';
 
 /*
-    listen command
+  listen command
  */
 program.parse(process.argv);
 
