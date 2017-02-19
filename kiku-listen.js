@@ -80,7 +80,7 @@ function play(q, i) {
   let stream = fs.createReadStream(q[i], { bufferSize: 1 }); // Starts reading the file with given buffer
   log.info("Playing " + q[i] + "...");
   
-  // Create read stream reads in chunks, this handler 
+  // Create read stream reads in chunks, this handler triggers sequentially 
   stream.on('data', (chunk) =>{
     bytes += chunk.length; // Chunk = byte array, we add the length to the bytes count since length equates to the number of bytes
     
