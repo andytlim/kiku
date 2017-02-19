@@ -87,8 +87,8 @@ function play(q, i) {
     // If byte count reaches over the (1024 bytes * 1024 bytes = 1 megabyte) buffer, pause the stream for a second
     // The pause is to emulate a true buffer because theoretically another process should be reading the file right now
     // Write 1 MB of data => Pause => Flush data => write again
-    if ((bytes / (1024 * 1024)) > 1) {
-      log.info('Buffer is over 1 MB. Pausing for 1 second(s)..' + bytes + " total");
+    if ((bytes / (1024 * 1024)) > 2) {
+      log.info('Buffer is over 1 MB. Pausing for 5 second(s)..' + bytes + " total");
       log.info('Stream is paused: ' + stream.isPaused());
       stream.pause();
       stream.unpipe();
@@ -97,7 +97,7 @@ function play(q, i) {
         log.info('Flushing buffer');
         stream.resume();
         stream.pipe(out);
-      }, 1000);
+      }, 5000);
     }
     log.info("Received " + chunk.length + "  bytes of data.");
   }); 
