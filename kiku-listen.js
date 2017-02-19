@@ -1,39 +1,34 @@
-/*
-  imports
- */
-var program = require('commander'),
+// Imports
+const program = require('commander'),
   fs = require('fs'),
   path = require('path'),
   winston = require('winston')
   out = fs.createWriteStream('./kiku.mp3');
 
-/*
-  logging level
- */
-var logger = new (winston.Logger)({
+// Logging level
+let log = new (winston.Logger)({
   transports: [
     new (winston.transports.Console)()
   ]
 });
-logger.level = 'info';
+log.level = 'info';
 
-/*
-  listen command
- */
+// 'listen' command
 program.parse(process.argv);
 
-var q = [];
-var src = program.args[0];
+let q = []; // Song queue
+let src = program.args[0]; // Song folder path (will read recursively!)
 
-logger.info("Playing music files from: " + src);
+log.info("Playing music files from: " + src);
 
-var s = [];
-var m = {};
-s.push(src);
+let s = []; // Data structure used for depth first search (DFS) aka a recursive .mp4 search starting at the folder path provided
+let m = {}; // Temporary data structure for marking visited folders in DFS
+s.push(src); 
 
+// Recursive search for .mp4 files and add to the song queue
 while (s.length > 0) {
   var dir = s[s.length-1];
-  logger.info("Traversing " + dir + ":");
+  log.info("Traversing " + dir + ":");
   var files = fs.readdirSync(dir);  
   
   var end = true;
@@ -43,12 +38,12 @@ while (s.length > 0) {
       var arr = files[i].split("\.");
       var ext = arr[arr.length-1];      
       if (ext === "mp3") {
-        logger.info("Adding file " + files[i] + " to queue.");
+        log.info("Adding file " + files[i] + " to queue.");
         q.push(fPath);
       }
     }
     else if (!m.hasOwnProperty(fPath)) {
-      logger.info("Found folder " + files[i] + "!");
+      log.info("Found folder " + files[i] + "!");
       s.push(fPath);
       end = false;
       break;
@@ -56,14 +51,15 @@ while (s.length > 0) {
   }
   
   if (end) {
-    logger.info("Traversal completed.");
+    log.info("Traversal completed.");
     m[s.pop()] = true;
   }
 }
 
-logger.info("Queued " +  q.length + " items.");
+// Song queue is done!!
+log.info("Queued " +  q.length + " items.");
 
-logger.info("Starting stream...");
+log.info("Starting stream...");
 start(q);
 
 /**
@@ -77,33 +73,39 @@ function start(q) {
 var bytes = 0;
 /**
  * Play audio file
+ * @param {array} q List of absolute file paths to .mp4 files
+ * @param {number} i Index for the song to play
  */
 function play(q, i) {
-  var stream = fs.createReadStream(q[i], { bufferSize: 1 });
-  logger.info("Playing " + q[i] + "...");
+  let stream = fs.createReadStream(q[i], { bufferSize: 1 }); // Starts reading the file with given buffer
+  log.info("Playing " + q[i] + "...");
   
+  // Create read stream reads in chunks, this handler 
   stream.on('data', (chunk) =>{
-    bytes += chunk.length;
-    // 1 MB Buffer
-    // Pausing for 20 seconds
-    if ((bytes / (1024 * 1024)) > 2) {
-      logger.info('Buffer is over 5 MB. Pausing for 5 seconds..' + bytes + " total");
-      logger.info('Stream is paused: ' + stream.isPaused());
+    bytes += chunk.length; // Chunk = byte array, we add the length to the bytes count since length equates to the number of bytes
+    
+    // If byte count reaches over the (1024 bytes * 1024 bytes = 1 megabyte) buffer, pause the stream for a second
+    // The pause is to emulate a true buffer because theoretically another process should be reading the file right now
+    // Write 1 MB of data => Pause => Flush data => write again
+    if ((bytes / (1024 * 1024)) > 1) {
+      log.info('Buffer is over 1 MB. Pausing for 1 second(s)..' + bytes + " total");
+      log.info('Stream is paused: ' + stream.isPaused());
       stream.pause();
       stream.unpipe();
-      logger.info('Stream is paused: ' + stream.isPaused());
+      log.info('Stream is paused: ' + stream.isPaused());
       setTimeout(() => {
-        logger.info('Flushing buffer');
+        log.info('Flushing buffer');
         stream.resume();
         stream.pipe(out);
       }, 1000);
     }
-    logger.info("Received " + chunk.length + "  bytes of data.");
+    log.info("Received " + chunk.length + "  bytes of data.");
   }); 
   
+  // When the fs.createReadStream process ends and the end of the file has been reached
   stream.on('end', function() {
-    logger.info(q[i] + " finished! Played " + bytes + " bytes.");
-    //if (i+1 < q.length) play(q, i+1);
+    log.info(q[i] + " finished! Played " + bytes + " bytes."); // Print out bytes read (it should be equal to what you see on your computer!)
+    //if (i+1 < q.length) play(q, i+1); // Plays next song if end of playlist is not reached
   });
   stream.pipe(out, {end: false});
 }
@@ -111,6 +113,8 @@ function play(q, i) {
 /**
  * Returns a random integer between min (inclusive) and max (inclusive)
  * Using Math.round() will give you a non-uniform distribution!
+ * @param {number} min Starting range for random number
+ * @param {number} max End range for random number
  */
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
